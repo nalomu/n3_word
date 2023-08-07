@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Any
 
 from pydantic import BaseModel
 
@@ -25,4 +25,37 @@ class User(UserBase):
     id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
+
+
+class Category(BaseModel):
+    id: int
+    name: str
+
+    class Config:
+        from_attributes = True
+
+
+class WordBase(BaseModel):
+    word: str
+    translation: str
+    pronunciation: str
+    remark: str
+
+
+class WordItem(WordBase):
+    category_id: int
+    category: Category
+
+    class Config:
+        from_attributes = True
+
+
+class WordCreate(WordBase):
+    category_name: str
+
+
+class StandardResponse(BaseModel):
+    code: int = 200
+    message: str
+    data: Any = {}

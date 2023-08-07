@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 import models
 import schemas
@@ -24,3 +24,34 @@ def create_user(db: Session, user: schemas.UserCreate):
     db.commit()
     db.refresh(db_user)
     return db_user
+
+
+def create_word_item_if_not_exists(db: Session, word_item: schemas.WordCreate):
+    db_word_item = db.query(models.WordItem).filter(models.WordItem.word == word_item.word).first()
+    if db_word_item:
+        return False
+    category = db.query(models.Category).filter(models.Category.name == word_item.category_name).first()
+    if not category:
+        category = models.Category(name=word_item.category_name)
+        db.add(category)
+        db.commit()
+        db.refresh(category)
+    db_word_item = models.WordItem(
+        word=word_item.word,
+        translation=word_item.translation,
+        pronunciation=word_item.pronunciation,
+        remark=word_item.remark,
+        category_id=category.id,
+    )
+    db.add(db_word_item)
+    db.commit()
+    db.refresh(db_word_item)
+    return db_word_item
+
+
+def get_words(db: Session, skip: int = 0, limit: int = 100):
+    return (db.query(models.WordItem)
+            .options(joinedload(models.WordItem.category))
+            .offset(skip)
+            .limit(limit)
+            .all())

@@ -1,4 +1,12 @@
-fastapi
+fastapi~=0.101.0
 uvicorn[standard]
 python-jose[cryptography]
-passlib[bcrypt]
+passlib[bcrypt]~=1.7.4
+SQLAlchemy~=2.0.19
+starlette~=0.27.0
+pydantic~=2.1.1
+python-multipart
+pandas
+numpy
+openpyxl
+pykakasi
