@@ -1,0 +1,23 @@
+[[source]]
+url = "https://mirrors.aliyun.com/pypi/simple"
+verify_ssl = true
+name = "pip_conf_index_global"
+
+[packages]
+fastapi = "~=0.101.0"
+uvicorn = {version = "*", extras = ["standard"]}
+python-jose = {version = "*", extras = ["cryptography"]}
+passlib = {version = "~=1.7.4", extras = ["bcrypt"]}
+sqlalchemy = "~=2.0.19"
+starlette = "~=0.27.0"
+pydantic = "~=2.1.1"
+python-multipart = "*"
+pandas = "*"
+numpy = "*"
+openpyxl = "*"
+pykakasi = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.10"
