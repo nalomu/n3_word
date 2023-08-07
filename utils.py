@@ -1,23 +1,12 @@
 from datetime import timedelta, datetime
 from typing import Union
 
-from fastapi import Depends, HTTPException
-from fastapi.logger import logger
 from fastapi.security import OAuth2PasswordBearer
-from jose import jwt, JWTError
+from jose import jwt
 from passlib.context import CryptContext
-from sqlalchemy.orm import Session
-from starlette import status
 
-import crud
-import schemas
-from database import SessionLocal
-from exceptions import UnicornException
+from config import SECRET_KEY, ALGORITHM
 
-# jwt 加密用的 secret_key
-SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
-# 加密方式
-ALGORITHM = "HS256"
 # token过期时间
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 

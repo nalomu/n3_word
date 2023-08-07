@@ -11,7 +11,7 @@ from dependencies import get_db, get_current_user
 from exceptions import UnicornException
 from logger import logger
 
-router = APIRouter()
+router = APIRouter(prefix='/api')
 
 
 @router.post("/uploadfile/", )

@@ -10,7 +10,7 @@ from exceptions import UnicornException
 from utils import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token
 from dependencies import get_db, authenticate_user, get_current_user
 
-router = APIRouter(tags=['users'])
+router = APIRouter(prefix='/api', tags=['users'])
 
 
 @router.post("/users/", response_model=schemas.User)

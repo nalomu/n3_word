@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
+from starlette.staticfiles import StaticFiles
 
 import models
 import schemas
@@ -33,11 +34,12 @@ app.include_router(users.router)
 app.include_router(words.router)
 
 
-@app.get("/")
-async def root():
-    return schemas.StandardResponse(code=200, message='Hello World', data={'test': 1})
+# @app.get("/")
+# async def root():
+#     return schemas.StandardResponse(code=200, message='Hello World', data={'test': 1})
 
 
-@app.get("/hello/{name}")
-async def say_hello(name: str):
-    return schemas.StandardResponse(code=200, message=f'Hello {name}', data={'name': name})
+# @app.get("/hello/{name}")
+# async def say_hello(name: str):
+#     return schemas.StandardResponse(code=200, message=f'Hello {name}', data={'name': name})
+
