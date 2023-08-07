@@ -1,3 +1,5 @@
+from typing import Union
+
 from sqlalchemy.orm import Session, joinedload
 
 import models
@@ -26,7 +28,7 @@ def create_user(db: Session, user: schemas.UserCreate):
     return db_user
 
 
-def create_word_item_if_not_exists(db: Session, word_item: schemas.WordCreate):
+def create_word_item_if_not_exists(db: Session, word_item: schemas.WordCreate) -> Union[models.WordItem, bool]:
     db_word_item = db.query(models.WordItem).filter(models.WordItem.word == word_item.word).first()
     if db_word_item:
         return False
@@ -49,9 +51,9 @@ def create_word_item_if_not_exists(db: Session, word_item: schemas.WordCreate):
     return db_word_item
 
 
-def get_words(db: Session, skip: int = 0, limit: int = 100):
+def get_words(db: Session, ):
     return (db.query(models.WordItem)
             .options(joinedload(models.WordItem.category))
-            .offset(skip)
-            .limit(limit)
+            # .offset(skip)
+            # .limit(limit)
             .all())

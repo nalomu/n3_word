@@ -57,5 +57,5 @@ class WordCreate(WordBase):
 
 class StandardResponse(BaseModel):
     code: int = 200
-    message: str
+    message: str = 'OK'
     data: Any = {}

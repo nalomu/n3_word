@@ -56,3 +56,13 @@ async def create_upload_file(file: UploadFile = File(...), db=Depends(get_db), u
             counter += 1
 
     return schemas.StandardResponse(message=f'上传成功，共上传了{counter}条数据')
+
+
+class WordsResponse(schemas.StandardResponse):
+    data: list[schemas.WordItem]
+
+
+@router.get('/words', response_model=WordsResponse)
+async def get_words(db=Depends(get_db)):
+    words = crud.get_words(db=db)
+    return schemas.StandardResponse(data=words)
