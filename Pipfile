@@ -22,5 +22,5 @@ pykakasi = "*"
 [requires]
 python_version = "3.10"
 
-[script]
+[scripts]
 my_app="uvicorn main:app --reload"
