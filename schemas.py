@@ -23,6 +23,7 @@ class UserCreate(UserBase):
 
 class User(UserBase):
     id: int
+    is_admin: int
 
     class Config:
         from_attributes = True
@@ -41,9 +42,11 @@ class WordBase(BaseModel):
     translation: str
     pronunciation: str
     remark: str
+    audio: Union[str, None] = None
 
 
 class WordItem(WordBase):
+    id: int
     category_id: int
     category: Category
 
@@ -53,6 +56,10 @@ class WordItem(WordBase):
 
 class WordCreate(WordBase):
     category_name: str
+
+
+class WordCreateC(WordBase):
+    category_id: int
 
 
 class StandardResponse(BaseModel):

@@ -16,6 +16,8 @@ pandas = "*"
 numpy = "*"
 openpyxl = "*"
 pykakasi = "*"
+gtts = "*"
+alembic = "*"
 
 [dev-packages]
 

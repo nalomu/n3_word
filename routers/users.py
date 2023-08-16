@@ -13,15 +13,20 @@ from dependencies import get_db, authenticate_user, get_current_user
 router = APIRouter(prefix='/api', tags=['users'])
 
 
-@router.post("/users/", response_model=schemas.User)
+class UserResult(schemas.StandardResponse):
+    data: schemas.User = None
+
+
+@router.post("/users/", response_model=UserResult)
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db_user = crud.get_user_by_username(db, username=user.username)
     if db_user:
-        raise UnicornException('User already exists')
-    return crud.create_user(db=db, user=user)
+        raise UnicornException('用户名已经被使用了')
+    user = crud.create_user(db=db, user=user)
+    return UserResult(data=user, message='注册成功')
 
 
-@router.post("/token", response_model=schemas.Token)
+@router.post("/token", response_model=schemas.StandardResponse)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db=Depends(get_db)):
     user = authenticate_user(form_data.username, form_data.password, db, )
     if not user:
@@ -30,9 +35,9 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     access_token = create_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+    return schemas.StandardResponse(data={"access_token": access_token, "token_type": "bearer"})
 
 
-@router.get("/users/me", response_model=schemas.User)
+@router.get("/users/me", response_model=UserResult)
 async def read_users_me(current_user: schemas.User = Depends(get_current_user)):
-    return current_user
+    return UserResult(data=current_user, message='注册成功')

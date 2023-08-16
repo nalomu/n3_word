@@ -4,18 +4,21 @@ import shutil
 import pandas as pd
 import pykakasi
 from fastapi import APIRouter, UploadFile, File, Depends
+from sqlalchemy.orm import Session
 
 import crud
 import schemas
-from dependencies import get_db, get_current_user
+from dependencies import get_db, get_current_user, get_admin_user
 from exceptions import UnicornException
 from logger import logger
+from models import WordItem
+from gtts import gTTS
 
 router = APIRouter(prefix='/api')
 
 
 @router.post("/uploadfile/", )
-async def create_upload_file(file: UploadFile = File(...), db=Depends(get_db), user=Depends(get_current_user)):
+async def create_upload_file(file: UploadFile = File(...), db=Depends(get_db), admin=Depends(get_admin_user)):
     # 验证文件类型
     content_type = file.content_type
     if content_type not in ["application/vnd.ms-excel",
@@ -62,7 +65,70 @@ class WordsResponse(schemas.StandardResponse):
     data: list[schemas.WordItem]
 
 
+class WordResponse(schemas.StandardResponse):
+    data: schemas.WordItem
+
+
 @router.get('/words', response_model=WordsResponse)
 async def get_words(db=Depends(get_db)):
     words = crud.get_words(db=db)
     return schemas.StandardResponse(data=words)
+
+
+@router.post("/words/", response_model=WordResponse)
+def create_word_item(word_item: schemas.WordCreateC, db: Session = Depends(get_db)):
+    db_item = WordItem(**word_item.dict())
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return WordResponse(data=db_item)
+
+
+@router.get("/words/{word_id}/", response_model=WordResponse)
+def read_word_item(word_id: int, db: Session = Depends(get_db)):
+    db_item = db.query(WordItem).filter(WordItem.id == word_id).first()
+    if db_item is None:
+        raise UnicornException("Word item not found")
+    return schemas.StandardResponse(data=db_item)
+
+
+@router.put("/words/{word_id}/", response_model=WordResponse)
+def update_word_item(word_id: int, word_item_update: schemas.WordCreateC, db: Session = Depends(get_db)):
+    db_item = db.query(WordItem).filter(WordItem.id == word_id).first()
+    if db_item is None:
+        raise UnicornException("Word item not found")
+
+    for field, value in word_item_update.dict().items():
+        setattr(db_item, field, value)
+    db.commit()
+    db.refresh(db_item)
+    return WordResponse(data=db_item)
+
+
+@router.delete("/words/{word_id}/", response_model=schemas.StandardResponse)
+def delete_word_item(word_id: int, db: Session = Depends(get_db)):
+    db_item = db.query(WordItem).filter(WordItem.id == word_id).first()
+    if db_item is None:
+        raise UnicornException("Word item not found")
+
+    db.delete(db_item)
+    db.commit()
+    return schemas.StandardResponse(message='删除成功')
+
+
+@router.get('/words/{word_id}/audio/', response_model=schemas.StandardResponse)
+async def get_word_audio(word_id: int, db: Session = Depends(get_db)):
+    db_item: WordItem = db.query(WordItem).filter(WordItem.id == word_id).first()
+    if db_item is None:
+        raise UnicornException("Word item not found")
+
+    if not os.path.exists(f"static/audios"):
+        os.makedirs(f"static/audios")
+    # if os.path.exists(f"static/audios/word_{db_item.id}.mp3"):
+    #     return schemas.StandardResponse(message='音频已存在', code=400)
+
+    tts = gTTS(db_item.word, lang='ja')
+    tts.save(f"static/audios/word_{db_item.id}.mp3")
+    db_item.audio = f"/static/audios/word_{db_item.id}.mp3"
+    db.commit()
+    return schemas.StandardResponse(message='生成成功')

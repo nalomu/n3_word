@@ -11,6 +11,7 @@ class User(Base):
     username = Column(String, unique=True, index=True)
     nickname = Column(String)
     hashed_password = Column(String)
+    is_admin = Column(Boolean, default=False)
 
 
 class Category(Base):
@@ -29,5 +30,6 @@ class WordItem(Base):
     pronunciation = Column(String)
     translation = Column(String)
     remark = Column(String)
+    audio = Column(String)
     category_id = Column(Integer, ForeignKey('categories.id'))
     category = relationship("Category", back_populates="word_items")

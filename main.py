@@ -8,7 +8,7 @@ import models
 import schemas
 from database import engine
 from exceptions import UnicornException
-from routers import users, words
+from routers import users, words, categories
 
 models.Base.metadata.create_all(bind=engine)
 app = FastAPI()
@@ -24,7 +24,7 @@ app.add_middleware(
 @app.exception_handler(UnicornException)
 async def unicorn_exception_handler(request: Request, exc: UnicornException):
     return JSONResponse(
-        status_code=400,
+        status_code=200,
         content=exc.response,
     )
 
@@ -32,7 +32,8 @@ async def unicorn_exception_handler(request: Request, exc: UnicornException):
 #  register routers
 app.include_router(users.router)
 app.include_router(words.router)
-
+app.include_router(categories.router)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # @app.get("/")
 # async def root():
@@ -42,4 +43,3 @@ app.include_router(words.router)
 # @app.get("/hello/{name}")
 # async def say_hello(name: str):
 #     return schemas.StandardResponse(code=200, message=f'Hello {name}', data={'name': name})
-

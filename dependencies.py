@@ -5,6 +5,7 @@ from jose import jwt, JWTError
 from sqlalchemy.orm import Session
 
 import crud
+import models
 import schemas
 from database import SessionLocal
 from exceptions import UnicornException
@@ -22,14 +23,14 @@ def get_db():
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) \
-        -> Union[schemas.User, bool]:
+        -> Union[models.User, bool]:
     """
     通过jwt token获取当前用户
     :param token:
     :param db:
     :return:
     """
-    credentials_exception = UnicornException("Could not validate credentials")
+    credentials_exception = UnicornException("Could not validate credentials", code=401)
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
@@ -42,6 +43,12 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     user = crud.get_user_by_username(db=db, username=token_data.username)
     if user is None:
         raise credentials_exception
+    return user
+
+
+async def get_admin_user(user: models.User = Depends(get_current_user)):
+    if not user.is_admin:
+        raise UnicornException('无权限')
     return user
 
 
