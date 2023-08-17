@@ -2,7 +2,7 @@ import logging
 
 # 创建并配置日志记录
 logging.basicConfig(
-    level=logging.DEBUG,  # 设置日志级别为 DEBUG
+    level=logging.INFO,  # 设置日志级别为 DEBUG
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
         logging.StreamHandler(),  # 输出到控制台
