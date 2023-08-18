@@ -1,18 +1,20 @@
 import os
 import shutil
 
+import magic
 import pandas as pd
 import pykakasi
 from fastapi import APIRouter, UploadFile, File, Depends
+from gtts import gTTS
+from pydub import AudioSegment
 from sqlalchemy.orm import Session
 
 import crud
 import schemas
-from dependencies import get_db, get_current_user, get_admin_user
+from dependencies import get_db, get_admin_user
 from exceptions import UnicornException
 from logger import logger
 from models import WordItem
-from gtts import gTTS
 
 router = APIRouter(prefix='/api')
 
@@ -132,3 +134,24 @@ async def get_word_audio(word_id: int, db: Session = Depends(get_db)):
     db_item.audio = f"/static/audios/word_{db_item.id}.mp3"
     db.commit()
     return schemas.StandardResponse(message='生成成功')
+
+
+# @router.post('/words/{word_id}/audio/', response_model=schemas.StandardResponse)
+# async def set_word_audio(word_id: int, file: UploadFile = File(...), db: Session = Depends(get_db)):
+#     db_item: WordItem = db.query(WordItem).filter(WordItem.id == word_id).first()
+#     if db_item is None:
+#         raise UnicornException("Word item not found")
+#     if not os.path.exists(f"static/audios"):
+#         os.makedirs(f"static/audios")
+#     mime_type = magic.Magic()
+#     file_mime = mime_type.from_buffer(file.file.read())
+#     logger.info(f'file_mime:{file_mime}', )
+#
+#     # 将 WAV 文件加载为 AudioSegment 对象
+#     if not file_mime.startswith('WebM'):
+#         return schemas.StandardResponse(message='上传格式错误', code=400)
+#     db_item.audio = f"static/audios/word_{db_item.id}.wav"
+#     with open(db_item.audio, 'wb') as f:
+#         shutil.copyfileobj(file.file, f)
+#     db.commit()
+#     return schemas.StandardResponse(message='上传成功')

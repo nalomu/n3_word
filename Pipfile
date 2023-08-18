@@ -18,6 +18,8 @@ openpyxl = "*"
 pykakasi = "*"
 gtts = "*"
 alembic = "*"
+python-magic = "*"
+pydub = "*"
 
 [dev-packages]
 
