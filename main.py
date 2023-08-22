@@ -8,7 +8,7 @@ import models
 import schemas
 from database import engine
 from exceptions import UnicornException
-from routers import users, words, categories
+from routers import users, words, categories, feedbacks
 
 models.Base.metadata.create_all(bind=engine)
 app = FastAPI()
@@ -33,6 +33,7 @@ async def unicorn_exception_handler(request: Request, exc: UnicornException):
 app.include_router(users.router)
 app.include_router(words.router)
 app.include_router(categories.router)
+app.include_router(feedbacks.router)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # @app.get("/")

@@ -12,6 +12,7 @@ class User(Base):
     nickname = Column(String)
     hashed_password = Column(String)
     is_admin = Column(Boolean, default=False)
+    feedbacks = relationship("Feedback", back_populates="user")
 
 
 class Category(Base):
@@ -33,3 +34,20 @@ class WordItem(Base):
     audio = Column(String)
     category_id = Column(Integer, ForeignKey('categories.id'))
     category = relationship("Category", back_populates="word_items")
+    feedbacks = relationship("Feedback", back_populates="word")
+
+
+class Feedback(Base):
+    __tablename__ = "feedbacks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    word_id = Column(Integer, ForeignKey('word_items.id'))
+    audio_url = Column(String)
+    error_type = Column(String)
+    translate = Column(String)
+
+    status = Column(String)
+
+    user = relationship("User", back_populates="feedbacks")
+    word = relationship("WordItem", back_populates="feedbacks")

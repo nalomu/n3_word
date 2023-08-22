@@ -31,7 +31,7 @@ async def get_categories(db=Depends(get_db)):
 
 
 @router.post("/categories/", response_model=CategoryResult)
-def create_category(category: schemas.Category, db: Session = Depends(get_db)):
+def create_category(category: schemas.CategoryCreate, db: Session = Depends(get_db)):
     db_item = Category(**category.dict())
     db.add(db_item)
     db.commit()
@@ -48,7 +48,7 @@ def read_category(cid: int, db: Session = Depends(get_db)):
 
 
 @router.put("/categories/{cid}/", response_model=CategoryResult)
-def update_category(cid: int, category_update: schemas.Category, db: Session = Depends(get_db)):
+def update_category(cid: int, category_update: schemas.CategoryCreate, db: Session = Depends(get_db)):
     db_item = db.query(Category).filter(Category.id == cid).first()
     if db_item is None:
         raise UnicornException("Category not found")

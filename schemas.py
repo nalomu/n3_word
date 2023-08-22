@@ -1,4 +1,4 @@
-from typing import Union, Any
+from typing import Union, Any, Optional
 
 from pydantic import BaseModel
 
@@ -27,6 +27,10 @@ class User(UserBase):
 
     class Config:
         from_attributes = True
+
+
+class CategoryCreate(BaseModel):
+    name: str
 
 
 class Category(BaseModel):
@@ -66,3 +70,21 @@ class StandardResponse(BaseModel):
     code: int = 200
     message: str = 'OK'
     data: Any = {}
+
+
+class FeedbackBase(BaseModel):
+    audio_url: Optional[str] = ''
+    error_type: str = ''
+    translate: Optional[str] = ''
+    status: str = ''
+
+
+class Feedback(FeedbackBase):
+    id: int
+    user_id: int = None
+    user: User = None
+    word_id: int = None
+    word: WordItem = None
+
+    class Config:
+        from_attributes = True

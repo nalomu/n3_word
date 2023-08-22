@@ -4,7 +4,7 @@ import shutil
 import magic
 import pandas as pd
 import pykakasi
-from fastapi import APIRouter, UploadFile, File, Depends
+from fastapi import APIRouter, UploadFile, File, Depends, Form
 from gtts import gTTS
 from pydub import AudioSegment
 from sqlalchemy.orm import Session
@@ -14,7 +14,7 @@ import schemas
 from dependencies import get_db, get_admin_user, get_current_user
 from exceptions import UnicornException
 from logger import logger
-from models import WordItem
+from models import WordItem, User, Feedback
 
 router = APIRouter(prefix='/api')
 
@@ -25,7 +25,7 @@ async def create_upload_file(file: UploadFile = File(...), db=Depends(get_db), a
     content_type = file.content_type
     if content_type not in ["application/vnd.ms-excel",
                             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"]:
-        raise UnicornException('Only excel files are allowed')
+        raise UnicornException('仅允许上传excel文件')
     # Create a temporary file to save the uploaded content
     with open("temp_file.xlsx", "wb") as temp_file:
         shutil.copyfileobj(file.file, temp_file)
@@ -136,32 +136,51 @@ async def get_word_audio(word_id: int, db: Session = Depends(get_db)):
     return schemas.StandardResponse(message='生成成功')
 
 
-@router.post('/words/{word_id}/audio/', response_model=schemas.StandardResponse)
-async def set_word_audio(word_id: int,
-                         file: UploadFile = File(...),
-                         db: Session = Depends(get_db),
-                         user=Depends(get_current_user)):
+@router.post('/words/{word_id}/feedback/', response_model=schemas.StandardResponse)
+async def word_feedback(word_id: int,
+                        file: UploadFile = File(default=None),
+                        db: Session = Depends(get_db),
+                        error_type: str = Form(),
+                        translate: str = Form(default=None),
+                        user: User = Depends(get_current_user)):
     db_item: WordItem = db.query(WordItem).filter(WordItem.id == word_id).first()
     if db_item is None:
-        raise UnicornException("Word item not found")
+        raise UnicornException("没有找到这个单词")
     if not os.path.exists(f"static/audios"):
         os.makedirs(f"static/audios")
-    print(file.headers)
-    mime_type = magic.Magic()
-    file_mime = mime_type.from_buffer(file.file.read())
-    logger.info(f'file_mime:{file_mime}', )
-    # print(user)
-    file.file.seek(0)
+    feedback: Feedback = db.query(Feedback).filter(
+        (Feedback.user_id == user.id)
+        & (Feedback.word_id == db_item.id)
+        & (Feedback.error_type == error_type)
+    ).first()
+    if not feedback:
+        feedback = Feedback(user_id=user.id, word_id=db_item.id, error_type=error_type)
+    if error_type == 'pronunciation':
+        if file is None:
+            return schemas.StandardResponse(message='请上传音频', code=400)
+        print(file.headers)
+        mime_type = magic.Magic()
+        file_mime = mime_type.from_buffer(file.file.read())
+        logger.info(f'file_mime:{file_mime}', )
+        file.file.seek(0)
 
-    # 将 WAV 文件加载为 AudioSegment 对象
-    # if not file_mime.startswith('WebM'):
-    #     return schemas.StandardResponse(message='上传格式错误', code=400)
-    # db_item.audio = f"static/audios/word_{db_item.id}.wav"
-    db_item.audio = f"static/audios/word_{db_item.id}.wav"
-    with open(db_item.audio, 'wb') as f:
-        shutil.copyfileobj(file.file, f)
-    audio = AudioSegment.from_file(db_item.audio)
-    audio.export(f"static/audios/word_{db_item.id}.mp3", format="mp3")
-
+        # 将 WAV 文件加载为 AudioSegment 对象
+        # if not file_mime.startswith('WebM'):
+        #     return schemas.StandardResponse(message='上传格式错误', code=400)
+        wav_file = f"static/audios/word_{db_item.id}_{user.id}.wav"
+        audio_url = f"static/audios/word_{db_item.id}_{user.id}.mp3"
+        try:
+            with open(wav_file, 'wb') as f:
+                shutil.copyfileobj(file.file, f)
+            audio = AudioSegment.from_file(wav_file)
+            audio.export(audio_url, format="mp3")
+        except Exception as e:
+            logger.exception('出错了：')
+            return schemas.StandardResponse(message='上传格式错误,请重新选择', code=400)
+        feedback.audio_url = audio_url
+    else:
+        feedback.translate = translate
+    feedback.status = 'pending'
+    db.add(feedback)
     db.commit()
     return schemas.StandardResponse(message='上传成功')
