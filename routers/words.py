@@ -1,13 +1,15 @@
 import os
 import shutil
+import tempfile
 
 import magic
 import pandas as pd
 import pykakasi
 from fastapi import APIRouter, UploadFile, File, Depends, Form
 from gtts import gTTS
+from pydantic import BaseModel
 from pydub import AudioSegment
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 import crud
 import schemas
@@ -15,6 +17,7 @@ from dependencies import get_db, get_admin_user, get_current_user
 from exceptions import UnicornException
 from logger import logger
 from models import WordItem, User, Feedback
+from utils import generate_random_filename
 
 router = APIRouter(prefix='/api')
 
@@ -26,16 +29,17 @@ async def create_upload_file(file: UploadFile = File(...), db=Depends(get_db), a
     if content_type not in ["application/vnd.ms-excel",
                             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"]:
         raise UnicornException('仅允许上传excel文件')
+    if file.size > 1024 * 1024 * 10:
+        raise UnicornException('文件大小不能超过10MB')
     # Create a temporary file to save the uploaded content
-    with open("temp_file.xlsx", "wb") as temp_file:
-        shutil.copyfileobj(file.file, temp_file)
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # Generate a random filename to save the uploaded file
+        temp_file_name = os.path.join(temp_dir, generate_random_filename(file.filename))
+        with open(temp_file_name, "wb") as temp_file:
+            shutil.copyfileobj(file.file, temp_file)
+            # Read the data from the temporary file using pandas
+            df = pd.read_excel(temp_file_name)
 
-    # Read the data from the temporary file using pandas
-    df = pd.read_excel("temp_file.xlsx")
-
-    # Close and remove the temporary file
-    file.file.close()
-    os.remove("temp_file.xlsx")
     logger.debug(df.to_dict(orient="records"))
     # add data to Database
     counter = 0
@@ -71,14 +75,40 @@ class WordResponse(schemas.StandardResponse):
     data: schemas.WordItem
 
 
+class WordRange(BaseModel):
+    type: str = ''
+    range: list[int] = []
+
+
+class WordListQuery(BaseModel):
+    question_range: WordRange = WordRange()
+    question_count: int = 40
+
+
 @router.get('/words', response_model=WordsResponse)
 async def get_words(db=Depends(get_db)):
     words = crud.get_words(db=db)
     return schemas.StandardResponse(data=words)
 
 
+@router.post('/wordsList', response_model=WordsResponse)
+async def get_words_list(word_range: WordListQuery = WordListQuery(), db=Depends(get_db)):
+    query = (db.query(WordItem)
+             .options(joinedload(WordItem.category))
+             )
+    if len(word_range.question_range.range) > 0:
+        if word_range.question_range.type == 'category':
+            query = query.filter(WordItem.category_id.in_(word_range.question_range.range))
+        else:
+            query = query.filter(WordItem.id.in_(word_range.question_range.range))
+    if word_range.question_count > 0:
+        query = query.limit(word_range.question_count)
+    words = query.all()
+    return schemas.StandardResponse(data=words)
+
+
 @router.post("/words/", response_model=WordResponse)
-def create_word_item(word_item: schemas.WordCreateC, db: Session = Depends(get_db)):
+def create_word_item(word_item: schemas.WordCreateC, db: Session = Depends(get_db), _user=Depends(get_admin_user)):
     db_item = WordItem(**word_item.dict())
     db.add(db_item)
     db.commit()
@@ -95,7 +125,8 @@ def read_word_item(word_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/words/{word_id}/", response_model=WordResponse)
-def update_word_item(word_id: int, word_item_update: schemas.WordCreateC, db: Session = Depends(get_db)):
+def update_word_item(word_id: int, word_item_update: schemas.WordCreateC, db: Session = Depends(get_db),
+                     _user=Depends(get_admin_user)):
     db_item = db.query(WordItem).filter(WordItem.id == word_id).first()
     if db_item is None:
         raise UnicornException("Word item not found")
@@ -108,7 +139,7 @@ def update_word_item(word_id: int, word_item_update: schemas.WordCreateC, db: Se
 
 
 @router.delete("/words/{word_id}/", response_model=schemas.StandardResponse)
-def delete_word_item(word_id: int, db: Session = Depends(get_db)):
+def delete_word_item(word_id: int, db: Session = Depends(get_db), _user=Depends(get_admin_user)):
     db_item = db.query(WordItem).filter(WordItem.id == word_id).first()
     if db_item is None:
         raise UnicornException("Word item not found")
@@ -119,7 +150,7 @@ def delete_word_item(word_id: int, db: Session = Depends(get_db)):
 
 
 @router.get('/words/{word_id}/audio/', response_model=schemas.StandardResponse)
-async def get_word_audio(word_id: int, db: Session = Depends(get_db)):
+async def get_word_audio(word_id: int, db: Session = Depends(get_db), _user=Depends(get_admin_user)):
     db_item: WordItem = db.query(WordItem).filter(WordItem.id == word_id).first()
     if db_item is None:
         raise UnicornException("Word item not found")

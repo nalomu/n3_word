@@ -1,11 +1,11 @@
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.staticfiles import StaticFiles
 
 import models
-import schemas
 from database import engine
 from exceptions import UnicornException
 from routers import users, words, categories, feedbacks
@@ -18,6 +18,7 @@ app.add_middleware(
     allow_origins=['*'],
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Authorization", "X-Refresh-Token"],  # 设置允许暴露的响应头
 )
 
 
@@ -27,6 +28,15 @@ async def unicorn_exception_handler(request: Request, exc: UnicornException):
         status_code=200,
         content=exc.response,
     )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse({
+        "code": 412,
+        "message": '验证错误',
+        "data": exc.errors(),
+    })
 
 
 #  register routers

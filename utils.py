@@ -1,3 +1,5 @@
+import os
+import uuid
 from datetime import timedelta, datetime
 from typing import Union
 
@@ -7,8 +9,10 @@ from passlib.context import CryptContext
 
 from config import SECRET_KEY, ALGORITHM
 
-# token过期时间
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+# token过期时间 单位：分钟
+ACCESS_TOKEN_EXPIRE_MINUTES = 1
+# 30天
+REFRESH_TOKEN_EXPIRE_MINUTES = 60 * 24 * 30
 
 # 加密用context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -36,7 +40,7 @@ def get_password_hash(password) -> str:
     return pwd_context.hash(password)
 
 
-def create_access_token(data: dict, expires_delta: Union[timedelta, None] = None) -> str:
+def create_token(data: dict, expires_delta: Union[timedelta, None] = None) -> str:
     """
     通过data创建jwt token
     :param data:
@@ -51,3 +55,9 @@ def create_access_token(data: dict, expires_delta: Union[timedelta, None] = None
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
+
+
+def generate_random_filename(filename: str) -> str:
+    unique_id = uuid.uuid4().hex
+    base, ext = os.path.splitext(filename)
+    return f"{base}_{unique_id}{ext}"

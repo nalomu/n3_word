@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 import crud
 import schemas
 from exceptions import UnicornException
-from utils import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token
+from utils import ACCESS_TOKEN_EXPIRE_MINUTES, create_token, REFRESH_TOKEN_EXPIRE_MINUTES
 from dependencies import get_db, authenticate_user, get_current_user
 
 router = APIRouter(prefix='/api', tags=['users'])
@@ -28,14 +28,15 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/token", response_model=schemas.StandardResponse)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db=Depends(get_db)):
-    user = authenticate_user(form_data.username, form_data.password, db, )
+    user = authenticate_user(form_data.username, form_data.password, db)
     if not user:
         raise UnicornException('Incorrect username or password')
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
-    )
-    return schemas.StandardResponse(data={"access_token": access_token, "token_type": "bearer"})
+    access_token = create_token(data={"sub": user.username}, expires_delta=access_token_expires)
+    refresh_token_expires = timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINUTES)
+    refresh_token = create_token(data={"sub": user.username}, expires_delta=refresh_token_expires)
+    return schemas.StandardResponse(
+        data={"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"})
 
 
 @router.get("/users/me", response_model=UserResult)
