@@ -1,10 +1,11 @@
 from datetime import timedelta
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Body
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 import crud
+import models
 import schemas
 from exceptions import UnicornException
 from utils import ACCESS_TOKEN_EXPIRE_MINUTES, create_token, REFRESH_TOKEN_EXPIRE_MINUTES
@@ -42,3 +43,12 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 @router.get("/users/me", response_model=UserResult)
 async def read_users_me(current_user: schemas.User = Depends(get_current_user)):
     return UserResult(data=current_user, message='注册成功')
+
+
+@router.post("/users/settings", response_model=schemas.StandardResponse)
+async def set_settings(current_user: models.User = Depends(get_current_user), settings=Body(),
+                       db: Session = Depends(get_db)):
+    current_user.settings = settings
+    db.commit()
+    db.refresh(current_user)
+    return UserResult(data=current_user, message='设置已保存')

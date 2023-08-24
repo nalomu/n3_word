@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, JSON
 from sqlalchemy.orm import relationship
 
 from database import Base
@@ -12,6 +12,8 @@ class User(Base):
     nickname = Column(String)
     hashed_password = Column(String)
     is_admin = Column(Boolean, default=False)
+    # 保存json数据
+    settings = Column(JSON)
     feedbacks = relationship("Feedback", back_populates="user")
 
 

@@ -24,6 +24,7 @@ class UserCreate(UserBase):
 class User(UserBase):
     id: int
     is_admin: int
+    settings: Any
 
     class Config:
         from_attributes = True
