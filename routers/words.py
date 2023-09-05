@@ -2,7 +2,7 @@ import os
 import shutil
 import tempfile
 
-import magic
+# import magic
 import pandas as pd
 import pykakasi
 from fastapi import APIRouter, UploadFile, File, Depends, Form
@@ -71,6 +71,11 @@ class WordsResponse(schemas.StandardResponse):
     data: list[schemas.WordItem]
 
 
+class PagedWords(BaseModel):
+    data: list[schemas.WordItem]
+    total: int
+
+
 class WordResponse(schemas.StandardResponse):
     data: schemas.WordItem
 
@@ -83,6 +88,7 @@ class WordRange(BaseModel):
 class WordListQuery(BaseModel):
     question_range: WordRange = WordRange()
     question_count: int = 40
+    page:int = 1
 
 
 @router.get('/words', response_model=WordsResponse)
@@ -91,8 +97,8 @@ async def get_words(db=Depends(get_db)):
     return schemas.StandardResponse(data=words)
 
 
-@router.post('/wordsList', response_model=WordsResponse)
-async def get_words_list(word_range: WordListQuery = WordListQuery(), db=Depends(get_db)):
+@router.post('/words_list', response_model=schemas.StandardResponse)
+async def words_list(word_range: WordListQuery = WordListQuery(), db=Depends(get_db)):
     query = (db.query(WordItem)
              .options(joinedload(WordItem.category))
              )
@@ -101,10 +107,11 @@ async def get_words_list(word_range: WordListQuery = WordListQuery(), db=Depends
             query = query.filter(WordItem.category_id.in_(word_range.question_range.range))
         else:
             query = query.filter(WordItem.id.in_(word_range.question_range.range))
+    total = query.count()
     if word_range.question_count > 0:
-        query = query.limit(word_range.question_count)
+        query = query.offset((word_range.page - 1) * word_range.question_count).limit(word_range.question_count)
     words = query.all()
-    return schemas.StandardResponse(data=words)
+    return schemas.StandardResponse(data=PagedWords(data=words, total=total))
 
 
 @router.post("/words/", response_model=WordResponse)
@@ -190,9 +197,9 @@ async def word_feedback(word_id: int,
         if file is None:
             return schemas.StandardResponse(message='请上传音频', code=400)
         print(file.headers)
-        mime_type = magic.Magic()
-        file_mime = mime_type.from_buffer(file.file.read())
-        logger.info(f'file_mime:{file_mime}', )
+        # mime_type = magic.Magic()
+        # file_mime = mime_type.from_buffer(file.file.read())
+        # logger.info(f'file_mime:{file_mime}', )
         file.file.seek(0)
 
         # 将 WAV 文件加载为 AudioSegment 对象

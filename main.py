@@ -10,7 +10,7 @@ from database import engine
 from exceptions import UnicornException
 from routers import users, words, categories, feedbacks
 
-models.Base.metadata.create_all(bind=engine)
+# models.Base.metadata.create_all(bind=engine)
 app = FastAPI()
 
 app.add_middleware(
