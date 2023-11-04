@@ -7,6 +7,7 @@ import pandas as pd
 import pykakasi
 from fastapi import APIRouter, UploadFile, File, Depends, Form
 from gtts import gTTS
+from numpy import nan
 from pydantic import BaseModel
 from pydub import AudioSegment
 from sqlalchemy.orm import Session, joinedload
@@ -39,24 +40,25 @@ async def create_upload_file(file: UploadFile = File(...), db=Depends(get_db), a
             shutil.copyfileobj(file.file, temp_file)
             # Read the data from the temporary file using pandas
             df = pd.read_excel(temp_file_name)
+            df = df.fillna('')
 
     logger.debug(df.to_dict(orient="records"))
     # add data to Database
     counter = 0
+    kks = pykakasi.kakasi()
     for index, row in df.iterrows():
         word = row.get('日语', '')
-        kks = pykakasi.kakasi()
 
+        if not word or word is nan:
+            continue
         # 构建数据字典
         data = {
-            'word': row.get('日语', ''),
-            'translation': row.get('中文', ''),
+            'word': word,
+            'translation': row.get('中文', '') ,
             'pronunciation': row.get('注音', word and ''.join([i['hira'] for i in kks.convert(word)])),
             'remark': row.get('备注', ''),
             'category_name': row.get('分类', '默认分类'),
         }
-        if not data['word']:
-            continue
         # 调用 CRUD 函数创建或插入单词数据到数据库
         result = crud.create_word_item_if_not_exists(db=db, word_item=schemas.WordCreate(**data))
 
