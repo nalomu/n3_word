@@ -54,7 +54,7 @@ async def create_upload_file(file: UploadFile = File(...), db=Depends(get_db), a
         # 构建数据字典
         data = {
             'word': word,
-            'translation': row.get('中文', '') ,
+            'translation': row.get('中文', ''),
             'pronunciation': row.get('注音', word and ''.join([i['hira'] for i in kks.convert(word)])),
             'remark': row.get('备注', ''),
             'category_name': row.get('分类', '默认分类'),
@@ -90,8 +90,8 @@ class WordRange(BaseModel):
 class WordListQuery(BaseModel):
     question_range: WordRange = WordRange()
     question_count: int = 40
-    page:int = 1
-    is_random = False
+    page: int = 1
+    is_random: bool = False
 
 
 @router.get('/words', response_model=WordsResponse)
@@ -118,7 +118,6 @@ async def words_list(word_range: WordListQuery = WordListQuery(), db=Depends(get
             query = query.offset((word_range.page - 1) * word_range.question_count).limit(word_range.question_count)
     words = query.all()
     return schemas.StandardResponse(data=PagedWords(data=words, total=total))
-
 
 
 @router.post("/words/", response_model=WordResponse)
