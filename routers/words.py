@@ -10,6 +10,7 @@ from gtts import gTTS
 from numpy import nan
 from pydantic import BaseModel
 from pydub import AudioSegment
+from sqlalchemy import text
 from sqlalchemy.orm import Session, joinedload
 
 import crud
@@ -113,7 +114,7 @@ async def words_list(word_range: WordListQuery = WordListQuery(), db=Depends(get
     total = query.count()
     if word_range.question_count > 0:
         if word_range.is_random:
-            query = query.order_by(db.func.random()).limit(word_range.question_count)
+            query = query.order_by(text("RANDOM()")).limit(word_range.question_count)
         else:
             query = query.offset((word_range.page - 1) * word_range.question_count).limit(word_range.question_count)
     words = query.all()
