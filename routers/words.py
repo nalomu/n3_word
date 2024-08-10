@@ -91,6 +91,7 @@ class WordListQuery(BaseModel):
     question_range: WordRange = WordRange()
     question_count: int = 40
     page:int = 1
+    is_random = False
 
 
 @router.get('/words', response_model=WordsResponse)
@@ -111,9 +112,13 @@ async def words_list(word_range: WordListQuery = WordListQuery(), db=Depends(get
             query = query.filter(WordItem.id.in_(word_range.question_range.range))
     total = query.count()
     if word_range.question_count > 0:
-        query = query.offset((word_range.page - 1) * word_range.question_count).limit(word_range.question_count)
+        if word_range.is_random:
+            query = query.order_by(db.func.random()).limit(word_range.question_count)
+        else:
+            query = query.offset((word_range.page - 1) * word_range.question_count).limit(word_range.question_count)
     words = query.all()
     return schemas.StandardResponse(data=PagedWords(data=words, total=total))
+
 
 
 @router.post("/words/", response_model=WordResponse)
