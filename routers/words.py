@@ -101,24 +101,40 @@ async def get_words(db=Depends(get_db)):
     return schemas.StandardResponse(data=words)
 
 
+# 定义一个POST请求的路由，用于获取单词列表
+# 请求的路径为'/words_list'，响应的模型为'schemas.StandardResponse'
 @router.post('/words_list', response_model=schemas.StandardResponse)
+# 异步函数words_list，用于处理'/words_list'路径的请求
+# 参数:
+# - word_range: WordListQuery类型的对象，包含查询单词列表所需的查询条件，默认为空对象
+# - db: 数据库会话，通过Depends(get_db)获取
 async def words_list(word_range: WordListQuery = WordListQuery(), db=Depends(get_db)):
+    # 初始化查询，加载WordItem及其关联的category
     query = (db.query(WordItem)
              .options(joinedload(WordItem.category))
              )
+    # 根据提供的word_range中的question_range进行过滤
     if len(word_range.question_range.range) > 0:
+        # 根据question_range的类型进行过滤
         if word_range.question_range.type == 'category':
             query = query.filter(WordItem.category_id.in_(word_range.question_range.range))
         else:
             query = query.filter(WordItem.id.in_(word_range.question_range.range))
+    # 统计满足条件的单词总数
     total = query.count()
+    # 根据提供的question_count进行分页或随机选择
     if word_range.question_count > 0:
+        # 根据是否随机选择单词
         if word_range.is_random:
             query = query.order_by(text("RANDOM()")).limit(word_range.question_count)
         else:
+            # 实现分页查询
             query = query.offset((word_range.page - 1) * word_range.question_count).limit(word_range.question_count)
+    # 获取最终的单词列表
     words = query.all()
+    # 返回单词列表和总数封装后的数据
     return schemas.StandardResponse(data=PagedWords(data=words, total=total))
+
 
 
 @router.post("/words/", response_model=WordResponse)
